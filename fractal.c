@@ -1,109 +1,108 @@
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <tgmath.h>
+#include <math.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-struct complexDouble {
-    double real;
-    double imag;
-};
+int iterate(int maxItert, double x, double y);
 
-struct complexDouble iterate(int anzahlIter, int x, int y);
+void groundColorMix(double* color, int x, int min, int max);
+
+int color_rotate = 0;
+
+// Start Fraktale
+int MAX_ITER = 100;
 
 int main() {
-    // Allocate target array for grayscale image
-    /*
-    int width = 800;
-    int height = 600;
-    int testchannel = 3;
-    unsigned char *gray = malloc(width * height);
-    unsigned char *bunt = malloc(width * height * testchannel);
-    */
+    
+    double wbXStart = -2.5;
+    double wbXEnd = 1.5;
 
-    // Test Grau Bild
-
-    /*
-    for (int x = 0; x < width; x++) {
-        for (int y = 0; y < height; y++) {
-            gray[y * width + x] = rand();
-        }
-    }
-    stbi_write_jpg("grayscale.jpg", width, height, 1, gray, 95);
-
-    free(gray);
-    */
-
-    // Test Buntes Bild
-
-    /*
-    for (int x = 0; x < width; x++) {
-        for (int y = 0; y < height; y++) {
-            bunt[(y * width + x) * 3 + 0] = rand();
-            bunt[(y * width + x) * 3 + 1] = rand();
-            bunt[(y * width + x) * 3 + 2] = rand();
-        }
-    }
-    stbi_write_jpg("bunt.jpg", width, height, 3, bunt, 95);
-
-    free(bunt);
-    */
-
-    // Test mit Komplexen Zahlen
-    /*
-    double complex z1 = 1.0 + 3.0 * I;
-    double complex z2 = 1.0 - 4.0 * I;
-
-    double complex sum = z1 / z2;
-
-    printf("%f %f", creal(sum), cimag(sum));
-    */
-    // Start Fraktale
-
-    double wbXStart = -2;
-    double wbXEnd = 1;
-
-    double wbYStart = -1;
-    double wbYEnd = 1;
+    double wbYStart = 1.5;
+    double wbYEnd = -1.5;
 
     int aufloesungX = 1920;
     int aufloesungY = 1080;
     int channel = 3;
 
     double xStep = (wbXEnd - wbXStart) / aufloesungX;
-    double yStep = (wbYEnd - wbYStart) / aufloesungY;
+    double yStep = (wbYStart - wbYEnd) / aufloesungY;
 
-    unsigned char *fractal = malloc(aufloesungX * aufloesungY * channel);
+    printf ("Step X=%f : Y=%f\n", xStep, yStep);
 
-    for (int x = wbXStart; x < wbXEnd; x += xStep) {
-        for (int y = wbYStart; y < wbYEnd; y += yStep) {
-            struct complexDouble z = iterate(1, x, y);
-            double complex zn = z.real + z.imag * I;
-            fractal[(y * aufloesungX + x) * 3 + 0] = creal(zn) + cimag(zn);
-            fractal[(y * aufloesungX + x) * 3 + 1] = creal(zn) + cimag(zn);
-            fractal[(y * aufloesungX + x) * 3 + 2] = creal(zn) + cimag(zn);
+    unsigned char *fractal = malloc((aufloesungX+1) * (aufloesungY+1) * channel);
+
+    int minIter = MAX_ITER, maxIter = 0;
+
+    for (int indexY = 0; indexY < aufloesungY; indexY++) {
+        for (int indexX = 0; indexX < aufloesungX; indexX++) {
+
+            double xCoord = wbXStart + (indexX * xStep);
+            double yCoord = wbYStart - (indexY * yStep);
+
+            int iter = iterate(MAX_ITER, xCoord, yCoord);
+
+            
+            if (iter > maxIter) {
+                maxIter = iter;
+            } 
+            if (iter < minIter) {
+                minIter = iter;
+            }
+            
+
+            double arr[3];
+
+            groundColorMix(arr, iter, minIter, maxIter);
+            
+            fractal[(indexY * aufloesungX + indexX) * channel + 0] = (char) arr[0]; //iter;
+            fractal[(indexY * aufloesungX + indexX) * channel + 1] = (char) arr[1]; //iter;
+            fractal[(indexY * aufloesungX + indexX) * channel + 2] = (char) arr[2]; //iter;
+            
         }
     }
 
-    printf("Hallo");
-    stbi_write_jpg("fractal.jpg", aufloesungX, aufloesungY, channel, fractal,
+    printf("Ende %i\n", MAX_ITER);
+
+    char filename[20];
+
+    sprintf(filename, "fractal_%i.jpg", MAX_ITER);
+
+    stbi_write_jpg(filename, aufloesungX, aufloesungY, channel, fractal,
                    95);
 }
 
-struct complexDouble iterate(int anzahlIter, int x, int y) {
+int iterate(int maxItert, double x, double y) {
     // zn0 = 0
     // zn+1 = zn² + c
-    double complex zn = 0 + 0 * I;
-    for (int i = 0; i < anzahlIter; i++) {
-        zn = (zn * zn) + (x + y * I);
-    }
-    struct complexDouble z;
-    z.real = creal(zn);
-    z.imag = cimag(zn);
-    return z;
+    double complex zn = x + y * I;
+
+    int iter = 1;
+    double betrag = 1;
+    do {
+
+        //printf("Durchgang %i -> %f : %f\n", iter, creal(zn), cimag(zn));
+
+        double complex pow = (zn * zn);
+        //printf("Pow %f : %f\n", creal(pow), cimag(pow));
+
+        double complex add = pow + (x + y * I);
+        //printf("Add %f : %f\n", creal(add), cimag(add));
+
+        zn = add;
+        const double real = creal(zn) * creal(zn);
+        const double imag = cimag(zn) * cimag(zn);
+        betrag = sqrt( real + imag );
+        iter++;
+
+    } while (iter <= maxItert && betrag <= 2);
+
+    return iter;
 }
 
 // TODO Zeitmessen Start
