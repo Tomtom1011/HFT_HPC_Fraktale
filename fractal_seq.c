@@ -79,15 +79,6 @@ int main() {
 
     startTimeMeasure();
 
-    /*
-    
-    1300 GPU Threads
-              X  *  Y
-    Programm 1920*1080 = 2000000
-    
-    *\
-
-
     for (int indexY = 0; indexY < aufloesungY; indexY++) {
         for (int indexX = 0; indexX < aufloesungX; indexX++) {
 
