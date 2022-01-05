@@ -18,7 +18,7 @@ void writeToFile(int aufloesungX, int aufloesungY, int channel, unsigned char* f
 /**
  * Die Anzahl an Maximalen Iterationen zur Mandelbrot Berechnung
  */
-int MAX_ITER = 100;
+int MAX_ITER = 500;
 
 /**
  * Zeitmessung Start
@@ -75,9 +75,18 @@ int main() {
     /**
      * Das Datenarray fuer das Fraktal
      */
-    unsigned char *fractal = malloc((aufloesungX+1) * (aufloesungY+1) * channel);
+    unsigned char *fractal = malloc(aufloesungX * aufloesungY * channel);
 
     startTimeMeasure();
+
+    /*
+    
+    1300 GPU Threads
+              X  *  Y
+    Programm 1920*1080 = 2000000
+    
+    *\
+
 
     for (int indexY = 0; indexY < aufloesungY; indexY++) {
         for (int indexX = 0; indexX < aufloesungX; indexX++) {
@@ -135,7 +144,7 @@ void stopTimeMeasure() {
 }
 
 void writeToFile(int aufloesungX, int aufloesungY, int channel, unsigned char* fractal) {
-    char filename[20];
+    char filename[25];
     sprintf(filename, "fractal_seq_%i.jpg", MAX_ITER);
     stbi_write_jpg(filename, aufloesungX, aufloesungY, channel, fractal, 95);
     printf("Datei geschrieben\n");
