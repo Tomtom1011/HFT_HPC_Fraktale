@@ -19,7 +19,7 @@ void writeToFile(int aufloesungX, int aufloesungY, int channel, unsigned char* f
 /**
  * Die Anzahl an Maximalen Iterationen zur Mandelbrot Berechnung
  */
-int MAX_ITER = 1000;
+int MAX_ITER = 10000;
 
 /**
  * Zeitmessung Start
@@ -96,7 +96,7 @@ int main() {
     if (nodeRank == ROOT_NODE) {
         startTimeMeasure();
 
-        allFractals = malloc(aufloesungX+ * aufloesungY+ * channel * sizeof(unsigned char));
+        allFractals = malloc(aufloesungX * aufloesungY * channel * sizeof(unsigned char));
         receivedSizes = malloc(numberOfNodes * sizeof(int));
         offsets = malloc(numberOfNodes * sizeof(int));
     }
@@ -107,7 +107,8 @@ int main() {
         numberOfYCalculationsForNode += (aufloesungY - ((nodeRank + 1) * numberOfYCalculationsForNode));
     }
 
-    MPI_Gather(&numberOfYCalculationsForNode, 1, MPI_INT, receivedSizes, 1, MPI_INT, ROOT_NODE, MPI_COMM_WORLD);
+    int sizeForNode = numberOfYCalculationsForNode * aufloesungX * channel * sizeof(unsigned char);
+    MPI_Gather(&sizeForNode, 1, MPI_INT, receivedSizes, 1, MPI_INT, ROOT_NODE, MPI_COMM_WORLD);
     
     if (nodeRank == ROOT_NODE) {
         offsets[0] = 0;
