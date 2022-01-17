@@ -49,12 +49,12 @@ double wbYEnd = -1.5;
 /**
  * Bildaufloesung in X Richtung
  */
-int aufloesungX = 1920;
+int aufloesungX = 3840; // 3840 x 2160 
 
 /**
  * Bildaufloesung in Y Richtung
  */
-int aufloesungY = 1080;
+int aufloesungY = 2160;
 
 /**
  * Kanalanzahl der Datei
@@ -64,7 +64,6 @@ int channel = 3;
 const int ROOT_NODE = 0;
 
 int main() {
-    printf("Main");
 
     // MPI Init
     MPI_Init(NULL, NULL);
@@ -91,8 +90,6 @@ int main() {
     int *receivedSizes;
     int *offsets;
 
-    printf("Start\n");
-    
     if (nodeRank == ROOT_NODE) {
         startTimeMeasure();
 
@@ -117,43 +114,22 @@ int main() {
         }
     }
 
-   printf("Vor Berechnung - Rank=%i\n", nodeRank);
-
-    /*if (nodeRank == ROOT_NODE) {
-        for (int i = 0; i < numberOfNodes; i++) {
-            printf("0 - Rank=%i offset[%i]=%i receivedSizes[%i]=%i\n", nodeRank, i, offsets[i], i, receivedSizes[i]);
-        }
-    }*/
-
     unsigned char *localFractal = malloc(numberOfYCalculationsForNode * aufloesungX * channel * sizeof(unsigned char));
 
     for (int indexY = 0; indexY < numberOfYCalculationsForNode; indexY++) {
         for (int indexX = 0; indexX < aufloesungX; indexX++) {
 
-            double xCoord = wbXStart + (indexX * xStep);
-            double yCoord = wbYStart - ((indexY + yCoordinateOffset) * yStep);
+            double xCoord = wbXStart + (indexX * xStep);    // 2
+            double yCoord = wbYStart - ((indexY + yCoordinateOffset) * yStep);  // 3
 
             int iter = iterate(MAX_ITER, xCoord, yCoord);
 
-            localFractal[(indexY * aufloesungX + indexX) * channel + 0] = (char) iter;
-            localFractal[(indexY * aufloesungX + indexX) * channel + 1] = (char) iter;
-            localFractal[(indexY * aufloesungX + indexX) * channel + 2] = (char) iter;
+            localFractal[(indexY * aufloesungX + indexX) * channel + 0] = (char) iter;  // 4
+            localFractal[(indexY * aufloesungX + indexX) * channel + 1] = (char) iter;  // 4
+            localFractal[(indexY * aufloesungX + indexX) * channel + 2] = (char) iter;  // 4
         }
     }
     
-    /*
-    printf("1 - Rank=%i sendbuf=%i sendcountPart=%i receivedcountAll=%i\n", nodeRank, localFractal[0], (numberOfYCalculationsForNode * aufloesungX * channel), (aufloesungX * aufloesungY * channel));
-    if (nodeRank == ROOT_NODE) {
-        printf("2 - Rank=%i recvbuf[%i]=%i\n", nodeRank, 0, allFractals[0]);
-        for (int i = 0; i < numberOfNodes; i++) {
-            printf("3 - Rank=%i recvcounts[%i]=%i displs[%i]=%i\n", nodeRank, i, receivedSizes[i], i, offsets[i]);
-        }
-    }
-    printf("4 - Rank=%i localFractalCount=%li\n", nodeRank, sizeof(localFractal)/sizeof(unsigned char));
-    */
-
-    printf("Vor Gather - Rank=%i\n", nodeRank);
-
     // Die Daten zurück senden
     MPI_Gatherv(localFractal,   // void *sendbuf
             (numberOfYCalculationsForNode * aufloesungX * channel), // int sendcount
@@ -169,8 +145,6 @@ int main() {
     MPI_Finalize();
 
     if (nodeRank == ROOT_NODE) {
-        printf("7 - Rank=%i AllFraktal[0]=%i AllFraktal[135]=%i AllFraktal[270]=%i\n", 
-                nodeRank, allFractals[0], allFractals[135], allFractals[270]);
 
         stopTimeMeasure();
 
@@ -184,20 +158,20 @@ int main() {
 int iterate(int maxItert, double x, double y) {
     // zn0 = 0
     // zn+1 = zn² + c
-    double complex zn = x + y * I;
+    double complex zn = x + y * I;  // 2
 
     int iter = 1;
     double betrag = 1;
     do {
 
-        double complex pow = (zn * zn);
-        double complex add = pow + (x + y * I);
+        double complex pow = (zn * zn); // 6
+        double complex add = pow + (x + y * I); // 4
 
         zn = add;
-        const double real = creal(zn) * creal(zn);
-        const double imag = cimag(zn) * cimag(zn);
-        betrag = sqrt( real + imag );
-        iter++;
+        const double real = creal(zn) * creal(zn);  // 1
+        const double imag = cimag(zn) * cimag(zn);  // 1
+        betrag = sqrt( real + imag );   // 2
+        iter++; // 1
     } while (iter <= maxItert && betrag <= 2);
 
     return iter;
@@ -214,6 +188,8 @@ void stopTimeMeasure() {
     long lusec = end.tv_usec - start.tv_usec;
     double sec = (lsec + lusec / 1000000.0);
     printf("%8.6f seconds\n", sec);
+
+    printf("Zeit: %.4f Sec (nur Berechnung ohne Memory-Transfer)\nLeistung %.2f GFLOP/s\n", sec, ((aufloesungX * aufloesungY) * (2 + MAX_ITER * 15)) / sec / 1e9);
 }
 
 void writeToFile(int aufloesungX, int aufloesungY, int channel, unsigned char* fractal) {

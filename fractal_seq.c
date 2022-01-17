@@ -18,7 +18,7 @@ void writeToFile(int aufloesungX, int aufloesungY, int channel, unsigned char* f
 /**
  * Die Anzahl an Maximalen Iterationen zur Mandelbrot Berechnung
  */
-int MAX_ITER = 500;
+int MAX_ITER = 10000;
 
 /**
  * Zeitmessung Start
@@ -48,12 +48,12 @@ double wbYEnd = -1.5;
 /**
  * Bildaufloesung in X Richtung
  */
-int aufloesungX = 1920;
+int aufloesungX = 3840;
 
 /**
  * Bildaufloesung in Y Richtung
  */
-int aufloesungY = 1080;
+int aufloesungY = 2160;
 
 /**
  * Kanalanzahl der Datei

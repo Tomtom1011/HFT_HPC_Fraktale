@@ -11,7 +11,10 @@
 #include <CL/cl.h>
 #endif
 
-#define N (1024*1024*64)
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 #define CL_PROGRAM_FILE "opencl-program.cl"
 
@@ -19,6 +22,7 @@
 #define MAX_DEVICES 10
 #define MAX_NAME_LENGTH 128
 
+void writeToFile(int aufloesungX, int aufloesungY, int channel, unsigned char* fractal, int MAX_ITER);
 
 int main(int argc, char** argv)
 {
@@ -145,13 +149,13 @@ int main(int argc, char** argv)
 
 
 
-    int MAX_ITER = 500;
+    int MAX_ITER = 100;
     double wbXStart = -2.5;
     double wbXEnd = 1.5;
     double wbYStart = 1.5;
     double wbYEnd = -1.5;
-    long long aufloesungX = 1920;
-    long long aufloesungY = 1080;
+    long long aufloesungX = 3840; // 3840 x 2160 
+    long long aufloesungY = 2160;
     long long channel = 3;
 
     double xStep = (wbXEnd - wbXStart) / aufloesungX;
@@ -241,7 +245,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    clFinish(commands);
+    err = clFinish(commands);
 
 
     /*
@@ -277,7 +281,7 @@ int main(int argc, char** argv)
     size_t return_bytes;
 
     // Execute the kernel               
-    size_t global_size[] = {800, 600};
+    size_t global_size[] = {aufloesungX, aufloesungY};
     err = clEnqueueNDRangeKernel(commands, vector_add, 2, NULL, global_size, NULL, 0, NULL, &prof_event);
     if (err)
     {
@@ -286,15 +290,17 @@ int main(int argc, char** argv)
     }
 
     // Wait for the commands to get serviced before reading back results
-    clFinish(commands);
+    err = clFinish(commands);
+    printf("clFinish Command ausführen errCode=%i", err);
 
     clGetEventProfilingInfo(prof_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, &return_bytes);
     clGetEventProfilingInfo(prof_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, &return_bytes);
     double time = (double)(end_time - start_time) / 1.0e9;
-    printf("Zeit: %.4f sec (nur Berechnung ohne Memory-Transfer)\nLeistung %.2f GFLOP/s\n", time, FRACTAL_ARRAY_SIZE / time / 1e9);
+    printf("start=%f  end=%f\n", (double) start_time, (double) end_time);
+    printf("Zeit: %.4f Sec (nur Berechnung ohne Memory-Transfer)\nLeistung %.2f GFLOP/s\n", time, (FRACTAL_ARRAY_SIZE * (4 + MAX_ITER * 11)) / time / 1e9);
 
     // Read back the results from the device to verify the output
-    err = clEnqueueReadBuffer(commands, gpuMem_fractal, CL_TRUE, 0, FRACTAL_ARRAY_SIZE, fractal, 0, NULL, NULL);    // TODO Fehler zwischen global_size 100 000 - 480 000
+    err = clEnqueueReadBuffer(commands, gpuMem_fractal, CL_TRUE, 0, FRACTAL_ARRAY_SIZE, fractal, 0, NULL, NULL);    // TODO Fehler zwischen global_size 200000 - 240000 (500x400 funktioniert noch)
     if (err != CL_SUCCESS)
     {
         fprintf(stderr, "Failed to read output array");
@@ -302,10 +308,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    // TODO writeToFile
-    for (int i = 0; i < 100; i++) {
-        printf("%i ", fractal[i]);
-    }
+    writeToFile(aufloesungX, aufloesungY, channel, fractal, MAX_ITER);
 
     // Shutdown and cleanup
     clReleaseMemObject(gpuMem_MAX_ITER);
@@ -327,3 +330,9 @@ int main(int argc, char** argv)
     return 0;
 }
 
+void writeToFile(int aufloesungX, int aufloesungY, int channel, unsigned char* fractal, int MAX_ITER) {
+    char filename[25];
+    sprintf(filename, "fractal_gpu_%i_%i_%i.jpg", MAX_ITER, aufloesungX, aufloesungY);
+    stbi_write_jpg(filename, aufloesungX, aufloesungY, channel, fractal, 95);
+    printf("Datei geschrieben\n");
+}

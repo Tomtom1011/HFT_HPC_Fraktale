@@ -32,7 +32,7 @@ __kernel void calculateMandelBrotStep(__global const int *MAX_ITER,
 {
     int indexX = get_global_id(0);
     int indexY = get_global_id(1);
-
+	
     double xCoord = *wbXStart + (indexX * *xStep);
     double yCoord = *wbYStart - (indexY * *yStep);
 
@@ -53,8 +53,8 @@ __kernel void calculateMandelBrotStep(__global const int *MAX_ITER,
         zn = add;
         betrag = cmod(zn);
         iter++;
-    } while (iter <= MAX_ITER && betrag <= 2);
-
+    } while (iter <= *MAX_ITER && betrag <= 2);
+	
     fractal[(indexY * *aufloesungX + indexX) * *channel + 0] = (char) iter;
     fractal[(indexY * *aufloesungX + indexX) * *channel + 1] = (char) iter;
     fractal[(indexY * *aufloesungX + indexX) * *channel + 2] = (char) iter;

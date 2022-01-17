@@ -49,12 +49,12 @@ double wbYEnd = -1.5;
 /**
  * Bildaufloesung in X Richtung
  */
-int aufloesungX = 1920;
+int aufloesungX = 3840;
 
 /**
  * Bildaufloesung in Y Richtung
  */
-int aufloesungY = 1080;
+int aufloesungY = 2160;
 
 /**
  * Kanalanzahl der Datei
@@ -80,7 +80,7 @@ int main() {
 
     startTimeMeasure();
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(64)
     for (int indexY = 0; indexY < aufloesungY; indexY++) {
         for (int indexX = 0; indexX < aufloesungX; indexX++) {
 
